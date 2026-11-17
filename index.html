@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TSP Solver - Algoritma Genetika Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Roboto', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-[#f5f5f5] text-[#212121] min-h-screen pb-12 font-sans">
+
+    <header class="bg-[#1976d2] text-white shadow-md py-4 px-6 mb-8">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center">
+            <div>
+                <h1 class="text-xl font-medium tracking-wide">Optimasi TSP - Algoritma Genetika</h1>
+                <p class="text-xs text-blue-100">Visualisasi & Analisis Konvergensi Rute Terpendek</p>
+            </div>
+            <span class="text-sm bg-[#115293] px-3 py-1 rounded text-blue-100 mt-2 sm:mt-0">Mohammad Agung Dwi Mardika -
+                2511016110012</span>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 space-y-6">
+
+        <div class="bg-white rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.1)] p-6 border border-gray-200">
+            <h2 class="text-lg font-medium text-[#1976d2] mb-4">Konfigurasi Parameter Interaktif</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Populasi Awal</label>
+                    <input type="number" id="inputPopSize" value="10" min="4" max="100"
+                        class="w-full border border-gray-300 p-2 rounded text-sm focus:outline-none focus:border-[#1976d2]">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Crossover Rate (Pc)</label>
+                    <input type="number" id="inputCrossover" value="0.8" step="0.05" min="0" max="1"
+                        class="w-full border border-gray-300 p-2 rounded text-sm focus:outline-none focus:border-[#1976d2]">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Mutation Rate (Pm)</label>
+                    <input type="number" id="inputMutation" value="0.2" step="0.05" min="0" max="1"
+                        class="w-full border border-gray-300 p-2 rounded text-sm focus:outline-none focus:border-[#1976d2]">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 uppercase mb-1">Max Generasi</label>
+                    <input type="number" id="inputMaxGen" value="2000" step="100" min="50" max="10000"
+                        class="w-full border border-gray-300 p-2 rounded text-sm focus:outline-none focus:border-[#1976d2]">
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <div
+                class="bg-white rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.1)] p-6 border border-gray-200 space-y-6 flex flex-col justify-between">
+                <div class="space-y-4">
+                    <h3 class="text-base font-medium text-gray-800 border-b pb-2">Kontrol Eksekusi</h3>
+
+                    <div class="flex flex-col gap-2">
+                        <button onclick="runAllGA()"
+                            class="w-full bg-[#1976d2] hover:bg-[#115293] text-white font-medium py-2.5 px-3 rounded shadow transition duration-150 text-xs uppercase tracking-wider">
+                            Jalankan Otomatis
+                        </button>
+                        <div class="flex gap-2">
+                           
+                            <button onclick="initGA()"
+                                class="flex-1 bg-[#d32f2f] hover:bg-[#9a0007] text-white font-medium py-2 px-3 rounded shadow transition duration-150 text-xs uppercase tracking-wider">
+                                Reset
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3 pt-2 text-sm">
+                        <div class="flex justify-between border-b pb-2">
+                            <span class="text-gray-500">Generasi:</span>
+                            <span id="genVal" class="font-mono font-medium text-gray-800">0</span>
+                        </div>
+                        <div class="flex justify-between border-b pb-2">
+                            <span class="text-gray-500">Jarak Terpendek:</span>
+                            <span id="distVal" class="font-mono font-medium text-[#2e7d32]">-</span>
+                        </div>
+                        <div class="flex justify-between border-b pb-2">
+                            <span class="text-gray-500">Rata-rata Populasi:</span>
+                            <span id="avgDistVal" class="font-mono font-medium text-[#ed6c02]">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <span class="block text-xs font-medium text-gray-500 uppercase mb-1">Rute Terbaik Saat Ini:</span>
+                    <div id="routeVal"
+                        class="bg-gray-50 p-3 rounded border border-gray-200 font-mono text-xs text-gray-800 break-words">
+                        Belum dimulai
+                    </div>
+                </div>
+            </div>
+
+            <div
+                class="bg-white rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.1)] p-6 border border-gray-200 flex flex-col items-center">
+                <h3 class="text-base font-medium text-gray-800 border-b pb-2 w-full mb-4">Peta Rute Perjalanan (Canvas)
+                </h3>
+                <div class="bg-[#fafafa] border border-gray-200 rounded p-2 flex justify-center w-full">
+                    <canvas id="tspCanvas" width="380" height="280"
+                        class="bg-white border border-gray-200 rounded"></canvas>
+                </div>
+                <p class="text-xs text-gray-500 mt-3 text-center">
+                    Titik merah = Banjarmasin (Kota Asal). Titik hijau = Kota Tujuan.
+                </p>
+            </div>
+
+            <div
+                class="bg-white rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.1)] p-6 border border-gray-200 flex flex-col items-center">
+                <h3 class="text-base font-medium text-gray-800 border-b pb-2 w-full mb-4">Grafik Konvergensi Jarak</h3>
+                <div class="w-full h-[280px]">
+                    <canvas id="chartCanvas"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <div
+                class="bg-white rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.1)] p-6 border border-gray-200 lg:col-span-1">
+                <h3 class="text-base font-medium text-gray-800 border-b pb-2 mb-4">Matriks Jarak Antarkota (km)</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-center border-collapse text-[10px]">
+                        <tbody id="matrixTableBody" class="divide-y divide-gray-200 border">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div
+                class="bg-white rounded-lg shadow-[0_2px_4px_rgba(0,0,0,0.1)] p-6 border border-gray-200 lg:col-span-2">
+                <h3 class="text-base font-medium text-gray-800 border-b pb-2 mb-4">Log Generasi (Riwayat Perbaikan Rute)
+                </h3>
+                <div class="overflow-x-auto max-h-60 overflow-y-auto border border-gray-200 rounded">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-gray-100 border-b border-gray-200 text-gray-700">
+                                <th class="p-2.5 font-medium">Generasi</th>
+                                <th class="p-2.5 font-medium">Jarak Terbaik</th>
+                                <th class="p-2.5 font-medium">Rata-rata Jarak</th>
+                                <th class="p-2.5 font-medium">Rute Terbaik</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logTableBody" class="divide-y divide-gray-100 font-mono">
+                            <tr>
+                                <td colspan="4" class="p-4 text-center text-gray-400">Belum ada data log eksekusi.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <script>
+        const cities = {
+            'Banjarmasin': { x: 60, y: 220 },
+            'Banjarbaru': { x: 140, y: 170 },
+            'Martapura': { x: 180, y: 130 },
+            'Pelaihari': { x: 240, y: 230 },
+            'Rantau': { x: 190, y: 70 },
+            'Kandangan': { x: 300, y: 40 }
+        };
+
+        const distMatrix = {
+            'Banjarmasin': { 'Banjarmasin': 0, 'Banjarbaru': 35, 'Martapura': 40, 'Pelaihari': 65, 'Rantau': 110, 'Kandangan': 135 },
+            'Banjarbaru': { 'Banjarmasin': 35, 'Banjarbaru': 0, 'Martapura': 7, 'Pelaihari': 55, 'Rantau': 85, 'Kandangan': 110 },
+            'Martapura': { 'Banjarmasin': 40, 'Banjarbaru': 7, 'Martapura': 0, 'Pelaihari': 58, 'Rantau': 78, 'Kandangan': 102 },
+            'Pelaihari': { 'Banjarmasin': 65, 'Banjarbaru': 55, 'Martapura': 58, 'Pelaihari': 0, 'Rantau': 130, 'Kandangan': 155 },
+            'Rantau': { 'Banjarmasin': 110, 'Banjarbaru': 85, 'Martapura': 78, 'Pelaihari': 130, 'Rantau': 0, 'Kandangan': 30 },
+            'Kandangan': { 'Banjarmasin': 135, 'Banjarbaru': 110, 'Martapura': 102, 'Pelaihari': 155, 'Rantau': 30, 'Kandangan': 0 }
+        };
+
+        const startCity = 'Banjarmasin';
+        const otherCities = ['Banjarbaru', 'Martapura', 'Pelaihari', 'Rantau', 'Kandangan'];
+
+        let currentGen = 0;
+        let population = [];
+        let bestRoute = null;
+        let minDistance = Infinity;
+        let logData = [];
+        let convergenceChart = null;
+
+        function renderMatrixTable() {
+            const tbody = document.getElementById('matrixTableBody');
+            const cityKeys = Object.keys(cities);
+            let html = '<tr class="bg-gray-100 font-semibold"><td class="p-1 border">Kota</td>';
+            cityKeys.forEach(c => html += `<td class="p-1 border">${c.substring(0, 3)}</td>`);
+            html += '</tr>';
+
+            cityKeys.forEach(r => {
+                html += `<tr><td class="p-1 border font-semibold bg-gray-50">${r.substring(0, 3)}</td>`;
+                cityKeys.forEach(c => {
+                    html += `<td class="p-1 border">${distMatrix[r][c]}</td>`;
+                });
+                html += '</tr>';
+            });
+            tbody.innerHTML = html;
+        }
+
+        function initChart() {
+            const ctx = document.getElementById('chartCanvas').getContext('2d');
+            if (convergenceChart) convergenceChart.destroy();
+            convergenceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [
+                        {
+                            label: 'Best Distance (km)',
+                            data: [],
+                            borderColor: '#2e7d32',
+                            backgroundColor: '#2e7d32',
+                            borderWidth: 2,
+                            pointRadius: 0,
+                            fill: false
+                        },
+                        {
+                            label: 'Avg Distance (km)',
+                            data: [],
+                            borderColor: '#ed6c02',
+                            backgroundColor: '#ed6c02',
+                            borderWidth: 1.5,
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { title: { display: true, text: 'Generasi' } },
+                        y: { title: { display: true, text: 'Jarak (km)' } }
+                    }
+                }
+            });
+        }
+
+        function initGA() {
+            currentGen = 0;
+            minDistance = Infinity;
+            bestRoute = null;
+            logData = [];
+            population = [];
+            const popSize = parseInt(document.getElementById('inputPopSize').value) || 10;
+
+            for (let i = 0; i < popSize; i++) {
+                let route = [...otherCities].sort(() => Math.random() - 0.5);
+                population.push(route);
+            }
+
+            document.getElementById('genVal').innerText = '0';
+            document.getElementById('distVal').innerText = '-';
+            document.getElementById('avgDistVal').innerText = '-';
+            document.getElementById('routeVal').innerText = 'Belum dimulai';
+
+            updateLogTable();
+            initChart();
+            drawRoute(otherCities);
+        }
+
+        function calculateDistance(route) {
+            let total = distMatrix[startCity][route[0]];
+            for (let i = 0; i < route.length - 1; i++) {
+                total += distMatrix[route[i]][route[i + 1]];
+            }
+            total += distMatrix[route[route.length - 1]][startCity];
+            return total;
+        }
+
+        function selectParent(population, fitnesses) {
+            let totalFit = fitnesses.reduce((a, b) => a + b, 0);
+            let rand = Math.random() * totalFit;
+            let sum = 0;
+            for (let i = 0; i < population.length; i++) {
+                sum += fitnesses[i];
+                if (sum >= rand) return population[i];
+            }
+            return population[0];
+        }
+
+        function crossover(p1, p2, crossoverRate) {
+            if (Math.random() > crossoverRate) return [...p1];
+            let start = Math.floor(Math.random() * p1.length);
+            let end = Math.floor(Math.random() * (p1.length - start)) + start;
+            let child = Array(p1.length).fill(null);
+            for (let i = start; i <= end; i++) child[i] = p1[i];
+            let p2Idx = 0;
+            for (let i = 0; i < child.length; i++) {
+                if (child[i] === null) {
+                    while (child.includes(p2[p2Idx])) p2Idx++;
+                    child[i] = p2[p2Idx];
+                }
+            }
+            return child;
+        }
+
+        function mutate(route, mutationRate) {
+            if (Math.random() < mutationRate) {
+                let i = Math.floor(Math.random() * route.length);
+                let j = Math.floor(Math.random() * route.length);
+                [route[i], route[j]] = [route[j], route[i]];
+            }
+            return route;
+        }
+
+        function executeStep() {
+            const maxGen = parseInt(document.getElementById('inputMaxGen').value) || 2000;
+            const popSize = parseInt(document.getElementById('inputPopSize').value) || 10;
+            const crossoverRate = parseFloat(document.getElementById('inputCrossover').value) || 0.8;
+            const mutationRate = parseFloat(document.getElementById('inputMutation').value) || 0.2;
+
+            if (currentGen === 0 || population.length === 0) {
+                initGA();
+            }
+
+            currentGen++;
+            let distances = population.map(r => calculateDistance(r));
+            let fitnesses = distances.map(d => 1 / d);
+            let avgDist = Math.round(distances.reduce((a, b) => a + b, 0) / distances.length);
+
+            for (let i = 0; i < population.length; i++) {
+                if (distances[i] < minDistance) {
+                    minDistance = distances[i];
+                    bestRoute = [...population[i]];
+                }
+            }
+
+            let newPop = [];
+            newPop.push([...bestRoute]);
+
+            while (newPop.length < popSize) {
+                let p1 = selectParent(population, fitnesses);
+                let p2 = selectParent(population, fitnesses);
+                let child = crossover(p1, p2, crossoverRate);
+                child = mutate(child, mutationRate);
+                newPop.push(child);
+            }
+
+            population = newPop;
+            let fullRouteStr = [startCity, ...bestRoute, startCity].join(' ➔ ');
+
+            document.getElementById('genVal').innerText = currentGen;
+            document.getElementById('distVal').innerText = minDistance + ' km';
+            document.getElementById('avgDistVal').innerText = avgDist + ' km';
+            document.getElementById('routeVal').innerText = fullRouteStr;
+            drawRoute(bestRoute);
+
+            if (currentGen % 10 === 0 || currentGen === 1 || currentGen === maxGen) {
+                convergenceChart.data.labels.push(currentGen);
+                convergenceChart.data.datasets[0].data.push(minDistance);
+                convergenceChart.data.datasets[1].data.push(avgDist);
+                convergenceChart.update();
+            }
+
+            if (currentGen % 20 === 0 || currentGen === 1 || currentGen === maxGen) {
+                logData.unshift({
+                    gen: currentGen,
+                    best: minDistance,
+                    avg: avgDist,
+                    route: fullRouteStr
+                });
+                updateLogTable();
+            }
+        }
+
+        function updateLogTable() {
+            let tbody = document.getElementById('logTableBody');
+            tbody.innerHTML = '';
+            if (logData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-gray-400">Belum ada data log eksekusi.</td></tr>';
+                return;
+            }
+            logData.forEach(item => {
+                let tr = document.createElement('tr');
+                tr.className = 'hover:bg-gray-50 border-b border-gray-100 text-gray-700';
+                tr.innerHTML = `
+          <td class="p-2.5 font-medium">${item.gen}</td>
+          <td class="p-2.5 text-[#2e7d32] font-bold">${item.best} km</td>
+          <td class="p-2.5 text-[#ed6c02]">${item.avg} km</td>
+          <td class="p-2.5 text-gray-600">${item.route}</td>
+        `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function runAllGA() {
+            initGA();
+            const maxGen = parseInt(document.getElementById('inputMaxGen').value) || 2000;
+            for (let i = 1; i <= maxGen; i++) {
+                executeStep();
+                if (i % 50 === 0) {
+                    await new Promise(r => setTimeout(r, 2));
+                }
+            }
+        }
+
+      
+
+        function drawRoute(bestRoute) {
+            const canvas = document.getElementById('tspCanvas');
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const fullRoute = [startCity, ...bestRoute, startCity];
+
+            ctx.beginPath();
+            ctx.strokeStyle = '#1976d2';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < fullRoute.length - 1; i++) {
+                let c1 = cities[fullRoute[i]];
+                let c2 = cities[fullRoute[i + 1]];
+                ctx.moveTo(c1.x, c1.y);
+                ctx.lineTo(c2.x, c2.y);
+            }
+            ctx.stroke();
+
+            Object.keys(cities).forEach(key => {
+                let c = cities[key];
+                ctx.beginPath();
+                ctx.arc(c.x, c.y, 6, 0, 2 * Math.PI);
+                ctx.fillStyle = (key === startCity) ? '#d32f2f' : '#2e7d32';
+                ctx.fill();
+                ctx.lineWidth = 1.5;
+                ctx.strokeStyle = '#ffffff';
+                ctx.stroke();
+
+                ctx.fillStyle = '#212121';
+                ctx.font = '500 11px Roboto, sans-serif';
+                ctx.textAlign = 'left';
+                ctx.fillText(key, c.x + 8, c.y + 4);
+            });
+        }
+
+        renderMatrixTable();
+        initGA();
+    </script>
+</body>
+
+</html>
